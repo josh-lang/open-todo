@@ -6,15 +6,11 @@ module Api
 
     private
 
-    def auth
+    def auth_and_set_user
       authenticate_or_request_with_http_basic do |u, p|
-        user = User.find_by(username: u)
-        user.try(:authenticate, p)
+        @user = User.find_by(username: u)
+        @user.try(:authenticate, p)
       end
-    end
-
-    def permission_denied
-      error(403, 'Permission Denied!') unless true
     end
 
     def error(status, message = 'Something went wrong')

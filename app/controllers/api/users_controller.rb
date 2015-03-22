@@ -1,15 +1,23 @@
 module Api
   class Api::UsersController < Api::ApiController
-    before_action :auth, only: [:update, :destroy]
-    before_action :set_user, only: [:show, :update, :destroy]
+    before_action :auth_and_set_user, only: [:update, :destroy]
 
     def index
       @users = User.all
-      render json: @users, each_serializer: UserSerializer
+      unless @users.empty?
+        render json: @users, each_serializer: UserSerializer
+      else
+        error(404, 'There are literally no users. You have the power to change that: go sign up!')
+      end
     end
 
     def show
-      render json: @user, serializer: UserSerializer
+      @user = User.find_by(id: params[:id])
+      if @user.present?
+        render json: @user, serializer: UserSerializer
+      else
+        error(404, 'No user found with that id')
+      end
     end
 
     def create
@@ -35,10 +43,6 @@ module Api
     end
 
     private
-
-    def set_user
-      @user = User.find(params[:id])
-    end
 
     def user_params
       params.require(:user).permit(:username, :password, :password_confirmation)

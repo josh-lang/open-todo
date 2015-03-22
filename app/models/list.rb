@@ -14,9 +14,8 @@ class List < ActiveRecord::Base
   belongs_to :user
   has_many :items, dependent: :destroy
 
-  def self.permission_options
-    %w(private viewable open)
-  end
+  validates :name, presence: true
+  validates :permissions, presence: true, inclusion: { in: %w(private viewable open), message: "Permissions must be set to 'private', 'viewable', or 'open'" }
 
   def add(item_description)
     if items.create(description: item_description)

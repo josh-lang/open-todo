@@ -1,22 +1,32 @@
 module Api
   class Api::ListsController < Api::ApiController
-    before_action :auth
-    before_action :set_user
+    before_action :auth_and_set_user
     before_action :set_list, only: [:show, :update, :destroy]
 
     def index
       @lists = List.all.select {|l| l if @user.can?(:view, l)}
-      render json: @lists, each_serializer: ListSerializer
+      unless @lists.empty?
+        render json: @lists, each_serializer: ListSerializer
+      else
+        error(404, 'Go make some lists or friends that share lists; you apparently have neither...')
+      end
     end
 
     def show
-      render json: @list if @user.can?(:view, @list)
+      if @list.present?
+        if @user.can?(:view, @list)
+          render json: @list
+        else
+          error(403, 'You are not authorized to view this list')
+        end
+      else
+        error(404, 'No list found with that id')
+      end
     end
 
     def create
-      @list = List.new(list_params[:name, :permissions])
+      @list = List.new(list_params)
       @list.user = @user
-
       if @list.save
         render json: @list, status: :created
       else
@@ -25,26 +35,38 @@ module Api
     end
 
     def update
-      if @list.update(list_params)
-        head :no_content
+      if @list.present?
+        if @user == @list.user
+          if @list.update(list_params)
+            render json: @list, status: :ok
+          else
+            render json: @list.errors, status: :unprocessable_entity
+          end
+        else
+          error(403, "You are not authorized to edit this list's name or permissions")
+        end
       else
-        render json: @list.errors, status: :unprocessable_entity
+        error(404, 'No list found with that id')
       end
     end
 
     def destroy
-      @list.destroy
-      head :no_content
+      if @list.present?
+        if @user == @list.user
+          @list.destroy
+          head :no_content
+        else
+          error(403, "You are not authorized to delete this list")
+        end
+      else
+        error(404, 'No list found with that id')
+      end
     end
 
     private
 
-    def set_user
-      @user = User.find_by(username: params[:username])
-    end
-
     def set_list
-      @list = List.find(params[:id])
+      @list = List.find_by(id: params[:id])
     end
 
     def list_params

@@ -14,6 +14,8 @@ class Item < ActiveRecord::Base
   belongs_to :list
   delegate :user, to: :list
 
+  validates :description, presence: true
+
   default_scope { where(completed: false) }
 
   def mark_complete
