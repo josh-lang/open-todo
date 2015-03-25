@@ -18,7 +18,7 @@ class User < ActiveRecord::Base
 
   def can?(action, list)
     case list.permissions
-    when 'private'  then owns?(list)
+    when 'private'  then list.user == self
     when 'viewable'  then action == :view
     when 'open' then true
     else false
